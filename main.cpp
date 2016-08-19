@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include "file.h"
 #include "lexer.h"
-#include "dynamic_array.h"
+#include "parser.h"
 
 const static char* usage_string = "Usage: krang.exe input.kra";
 

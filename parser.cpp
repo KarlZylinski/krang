@@ -1,4 +1,8 @@
 #include "parser.h"
+#include <string.h>
+#include <stdlib.h>
+#include "memory.h"
+#include "lexer.h"
 
 enum struct DataType
 {
@@ -27,12 +31,6 @@ struct Value
     };
 };
 
-struct ParseNode;
-
-struct ParseScope
-{
-    DynamicArray<ParseNode> nodes;
-};
 
 struct ParseFunctionDef
 {
