@@ -1,5 +1,7 @@
 #pragma once
 
+struct Allocator;
+
 enum struct LexTokenType
 {
     Name,
@@ -9,7 +11,9 @@ enum struct LexTokenType
     ScopeEnd,
     Int32Literal,
     StatementEnd,
-    EndOfFile
+    EndOfFile,
+    Assignment,
+    Operator
 };
 
 struct LexToken 
@@ -19,4 +23,11 @@ struct LexToken
     unsigned len;
 };
 
-size_t lex(char* data, unsigned size, LexToken* out);
+struct LexerResult
+{
+    LexToken* data;
+    size_t num;
+    Allocator* allocator;
+};
+
+LexerResult lex(char* data, unsigned size, Allocator* allocator);

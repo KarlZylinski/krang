@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string.h>
+
 #define ENABLE_MEMORY_TRACING
 
 #if defined(ENABLE_MEMORY_TRACING)
@@ -19,6 +21,16 @@ struct Allocator
     void* alloc(unsigned size, unsigned align = DefaultMemoryAlign)
     {
         return alloc_internal(this, size, align);
+    }
+
+    void* alloc_zero(unsigned size, unsigned align = DefaultMemoryAlign)
+    {
+        void* p = alloc_internal(this, size, align);
+
+        if (p != nullptr)
+            memset(p, 0, size);
+
+        return p;
     }
 
     void dealloc(void* ptr)

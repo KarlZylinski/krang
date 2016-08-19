@@ -41,9 +41,8 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    LexToken* lex_tokens = (LexToken*)perma_alloc.alloc(lf.file.size * sizeof(LexToken));
-    size_t num_lex_tokens = lex((char*)lf.file.data, lf.file.size, lex_tokens);
-    ParseScope ps = parse(&perma_alloc, lex_tokens, num_lex_tokens);
+    LexerResult lexer_result = lex((char*)lf.file.data, lf.file.size, &perma_alloc);
+    ParseScope ps = parse(&perma_alloc, lexer_result.data, lexer_result.num);
 
     Allocator heap_alloc = create_heap_allocator();
     GeneratedCode cg = generate_code(&heap_alloc, ps);

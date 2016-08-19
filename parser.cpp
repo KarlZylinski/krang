@@ -23,12 +23,17 @@ static DataType parse_type_name(char* name, unsigned len)
     return (DataType)(-1);
 }
 
-#define parse_func_def_check (mem_ptr_diff(ps->head, ps->end) >= 3 \
+static unsigned num_tokens_diff(const LexToken* s, const LexToken* e)
+{
+    return mem_ptr_diff(s, e) / sizeof(LexToken);
+}
+
+#define parse_func_def_check (num_tokens_diff(ps->head, ps->end) >= 3 \
         && ps->head->type == LexTokenType::Name \
         && (ps->head + 1)->type == LexTokenType::Name \
         && (ps->head + 2)->type == LexTokenType::ArgStart)
 
-static void parse_scope(ParserState* ps, ParseScope* scope);
+static void parse_scope(ParserState* ps, ParseScope* scope, bool close_on_statement_end = true);
 
 static void parse_func_def(ParserState* ps, ParseScope* scope)
 {
@@ -49,8 +54,19 @@ static void parse_func_def(ParserState* ps, ParseScope* scope)
     ++ps->head;
 
     // For opening
-    ++ps->head;
     parse_scope(ps, &pfd.scope);
+}
+
+static Value parse_value(ParserState* ps)
+{
+    const LexToken& t = *ps->head;
+    Value v = {};
+    v.type = ValueType::Int32Literal;
+    v.int32_literal_val = atoi(t.val);
+    v.str_val = t.val;
+    v.str_val_len = t.len;
+    ++ps->head;
+    return v;
 }
 
 static void parse_func_call_parameters(ParserState* ps, DynamicArray<Value>* parameters)
@@ -63,15 +79,7 @@ static void parse_func_call_parameters(ParserState* ps, DynamicArray<Value>* par
         switch (t.type)
         {
             case LexTokenType::Int32Literal:
-                {
-                    Value v = {};
-                    v.type = ValueType::Int32Literal;
-                    v.int32_literal_val = atoi(t.val);
-                    v.str_val = t.val;
-                    v.str_val_len = t.len;
-                    parameters->add(v);
-                    ++ps->head;
-                }
+                    parameters->add(parse_value(ps));
                 break;
             case LexTokenType::ArgEnd:
                 ++ps->head;
@@ -85,7 +93,7 @@ static void parse_func_call_parameters(ParserState* ps, DynamicArray<Value>* par
     }
 }
 
-#define parse_func_call_check (mem_ptr_diff(ps->head, ps->end) >= 2 \
+#define parse_func_call_check (num_tokens_diff(ps->head, ps->end) >= 2 \
         && ps->head->type == LexTokenType::Name \
         && (ps->head + 1)->type == LexTokenType::ArgStart)
 
@@ -103,6 +111,57 @@ static void parse_func_call(ParserState* ps, ParseScope* scope)
     parse_func_call_parameters(ps, &pfc.parameters);
 }
 
+#define parse_loop_check (num_tokens_diff(ps->head, ps->end) >= 1 \
+        && ps->head->type == LexTokenType::Name \
+        && memcmp(ps->head->val, "loop", ps->head->len) == 0)
+
+static void parse_loop(ParserState* ps, ParseScope* scope)
+{
+    Assert(parse_loop_check, "Error in parser: Invalid loop.");
+    ParseNode* n = scope->nodes.push_init();
+    n->type = ParseNodeType::Loop;
+    ParseLoop& pl = n->loop;
+    ++ps->head; // loop keyword
+    ++ps->head; // opening brace! TODO: fix no-brace type
+    pl.scope.nodes = dynamic_array_create<ParseNode>(ps->allocator);
+    parse_scope(ps, &pl.scope);
+}
+
+#define parse_variable_decl_check (num_tokens_diff(ps->head, ps->end) >= 3 \
+        && ps->head->type == LexTokenType::Name \
+        && (ps->head + 1)->type == LexTokenType::Name \
+        && (ps->head + 2)->type != LexTokenType::ArgStart) // To not confuse with function decls.
+
+static ParseExpression parse_expression(ParserState* ps)
+{
+    ParseExpression expr = {};
+    expr.operand1 = parse_value(ps);
+
+    // get statement end, remove later..
+    ++ps->head;
+    
+    // TODO ADD STUFF HERE
+    //if (ps->head->type == ParseNodeType::StatementEnd)
+        return expr;
+
+
+}
+
+static void parse_variable_decl(ParserState* ps, ParseScope* scope)
+{
+    Assert(parse_variable_decl_check, "Error in parser: Invalid variable decl.");
+    ParseNode* n = scope->nodes.push_init();
+    n->type = ParseNodeType::VariableDecl;
+    ParseVariableDecl& vd = n->variable_decl;
+    vd.type = parse_type_name(ps->head->val, ps->head->len);
+    ++ps->head; // type done
+    vd.name = ps->head->val;
+    vd.name_len = ps->head->len;
+    ++ps->head; // name done
+    ++ps->head; // get rid of assignment op
+    vd.value_expr = parse_expression(ps);
+}
+
 static void parse_name_in_scope(ParserState* ps, ParseScope* scope)
 {
     // maybe func def, minimum type, name and parentheses
@@ -114,9 +173,21 @@ static void parse_name_in_scope(ParserState* ps, ParseScope* scope)
     {
         parse_func_call(ps, scope);
     }
+    else if (parse_loop_check)
+    {
+        parse_loop(ps, scope);
+    }
+    else if (parse_variable_decl_check)
+    {
+        parse_variable_decl(ps, scope);
+    }
+    else
+    {
+        Error("Unknown name.");
+    }
 }
 
-static void parse_scope(ParserState* ps, ParseScope* scope)
+static void parse_scope(ParserState* ps, ParseScope* scope, bool close_on_statement_end)
 {
     while (ps->start < ps->end)
     {
@@ -130,11 +201,20 @@ static void parse_scope(ParserState* ps, ParseScope* scope)
                 break;
             case LexTokenType::StatementEnd:
                 ++ps->head;
-                break;
+                if (close_on_statement_end)
+                    return;
+                else
+                    break;
+            case LexTokenType::ScopeStart:
+                ++ps->head;
+                close_on_statement_end = false;
+                return;
             case LexTokenType::ScopeEnd:
+                Assert(close_on_statement_end == false, "Error in parser: Scope start end mismatch.");
                 ++ps->head;
                 return;
             case LexTokenType::EndOfFile:
+                Assert(close_on_statement_end == false, "Error in parser: Scope start end mismatch.");
                 return;
         }
 
@@ -151,6 +231,6 @@ ParseScope parse(Allocator* alloc, const LexToken* lex_tokens, size_t num_lex_to
     ps.allocator = alloc;
     ParseScope root_scope = {};
     root_scope.nodes = dynamic_array_create<ParseNode>(alloc);
-    parse_scope(&ps, &root_scope);
+    parse_scope(&ps, &root_scope, false);
     return root_scope;
 }

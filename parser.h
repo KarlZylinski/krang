@@ -14,7 +14,10 @@ enum struct ParseNodeType
 {
     Scope,
     FunctionDef,
-    FunctionCall
+    FunctionCall,
+    Loop,
+    VariableDecl,
+    VariableAssigment
 };
 
 enum struct ValueType
@@ -57,6 +60,39 @@ struct ParseFunctionCall
     DynamicArray<Value> parameters;
 };
 
+struct ParseLoop
+{
+    ParseScope scope;
+};
+
+enum struct ParseOperator
+{
+    Literal,
+    Plus
+};
+
+struct ParseExpression
+{
+    ParseOperator op;
+    Value operand1;
+    Value operand2;
+};
+
+struct ParseVariableDecl
+{
+    DataType type;
+    char* name;
+    unsigned name_len;
+    ParseExpression value_expr;
+};
+
+struct ParseVariableAssigment
+{
+    char* name;
+    unsigned name_len;
+    ParseScope value_parse_scope;
+};
+
 struct ParseNode
 {
     ParseNodeType type;
@@ -66,6 +102,9 @@ struct ParseNode
         ParseScope scope;
         ParseFunctionDef function_def;
         ParseFunctionCall function_call;
+        ParseLoop loop;
+        ParseVariableDecl variable_decl;
+        ParseVariableAssigment variable_assign;
     };
 };
 

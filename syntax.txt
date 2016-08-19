@@ -18,7 +18,9 @@ i32 start()
     loop
         print("eternal loop")
 
-    loop lax == true
+    i8 lax = 0
+    loop lax == 0
+        print("as long as lax is true")
 
     if i == 5
     {
