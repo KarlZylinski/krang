@@ -32,24 +32,22 @@ static void add_code(CodeGeneratorState* cs, const char* code, unsigned len)
 
 static void generate_scope(CodeGeneratorState* cs, const ParseScope& ps);
 
+const static char* prologue =
+    "push ebp\n"
+    "mov ebp, esp\n";
+const static unsigned prologue_len = (unsigned)strlen(prologue);
+
+const static char* epilogue =
+    "\nmov esp, ebp\n"
+    "pop ebp\n";
+const static unsigned epilogue_len = (unsigned)strlen(epilogue);
+
 static void generate_function_def(CodeGeneratorState* cs, const ParseFunctionDef& def)
 {
     add_code(cs, def.name, def.name_len);
     add_code(cs, ":\n", 1);
-
-    const static char* prologue =
-        "push ebp\n"
-        "mov ebp, esp\n";
-    static unsigned prologue_len = (unsigned)strlen(prologue);
     add_code(cs, prologue, prologue_len);
-
     generate_scope(cs, def.scope);
-
-    const static char* epilogue =
-        "mov esp, ebp\n"
-        "pop ebp\n";
-    static unsigned epilogue_len = (unsigned)strlen(epilogue);
-    add_code(cs, epilogue, epilogue_len);
 }
 
 static void generate_function_call(CodeGeneratorState* cs, const ParseFunctionCall& call)
@@ -59,12 +57,14 @@ static void generate_function_call(CodeGeneratorState* cs, const ParseFunctionCa
         Assert(call.parameters.num <= 1, "Error in code generator: More than 1 return value.");
         const static char* ret_mov =
             "mov eax, ";
-        static unsigned ret_mov_len = (unsigned)strlen(ret_mov);
+        const static unsigned ret_mov_len = (unsigned)strlen(ret_mov);
+
         add_code(cs, ret_mov, ret_mov_len);
         add_code(cs, call.parameters[0].str_val, call.parameters[0].str_val_len);
+        add_code(cs, epilogue, epilogue_len);
 
-        const static char* ret = "\nret\n";
-        const unsigned ret_len = (unsigned)strlen(ret);
+        const static char* ret = "ret\n";
+        const static unsigned ret_len = (unsigned)strlen(ret);
         
         add_code(cs, ret, ret_len);
         return;
