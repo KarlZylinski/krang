@@ -4,61 +4,6 @@
 #include "memory.h"
 #include "lexer.h"
 
-enum struct DataType
-{
-    Int32
-};
-
-enum struct ParseNodeType
-{
-    Scope,
-    FunctionDef,
-    FunctionCall
-};
-
-enum struct ValueType
-{
-    Int32Literal
-};
-
-struct Value
-{
-    ValueType type;
-
-    union
-    {
-        int int32_literal_val;
-    };
-};
-
-
-struct ParseFunctionDef
-{
-    DataType return_type;
-    char* name;
-    unsigned name_len;
-    ParseScope scope;
-};
-
-struct ParseFunctionCall
-{
-    char* name;
-    unsigned name_len;
-    DynamicArray<Value> parameters;
-};
-
-struct ParseNode
-{
-    ParseNodeType type;
-
-    union
-    {
-        ParseScope scope;
-        ParseFunctionDef function_def;
-        ParseFunctionCall function_call;
-    };
-};
-
 struct ParserState
 {
     const LexToken* start;
@@ -122,6 +67,8 @@ static void parse_func_call_parameters(ParserState* ps, DynamicArray<Value>* par
                     Value v = {};
                     v.type = ValueType::Int32Literal;
                     v.int32_literal_val = atoi(t.val);
+                    v.str_val = t.val;
+                    v.str_val_len = t.len;
                     parameters->add(v);
                     ++ps->head;
                 }

@@ -4,6 +4,7 @@
 #include "file.h"
 #include "lexer.h"
 #include "parser.h"
+#include "code_generator.h"
 
 const static char* usage_string = "Usage: krang.exe input.kra";
 
@@ -23,14 +24,16 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    if (strlen(argv[1]) == 0)
+    char* filename = argv[1];
+
+    if (strlen(filename) == 0)
     {
         printf("No input file specified.");
         return -1;
     }
 
     Allocator perma_alloc = create_permanent_allocator();
-    LoadedFile lf = file_load(&perma_alloc, argv[1]);
+    LoadedFile lf = file_load(&perma_alloc, filename);
 
     if (!lf.valid)
     {
@@ -38,10 +41,39 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    Allocator heap_alloc = create_heap_allocator();
-    LexToken* lex_tokens = (LexToken*)heap_alloc.alloc(lf.file.size * sizeof(LexToken));
+    LexToken* lex_tokens = (LexToken*)perma_alloc.alloc(lf.file.size * sizeof(LexToken));
     size_t num_lex_tokens = lex((char*)lf.file.data, lf.file.size, lex_tokens);
-    ParseScope ps = parse(&heap_alloc, lex_tokens, num_lex_tokens);
+    ParseScope ps = parse(&perma_alloc, lex_tokens, num_lex_tokens);
+
+    Allocator heap_alloc = create_heap_allocator();
+    GeneratedCode cg = generate_code(&heap_alloc, ps);
+
+    Allocator ta = create_temp_allocator();
+    unsigned code_filename_len = (unsigned)strlen(filename) + 4;
+    char* code_filename = (char*)ta.alloc(code_filename_len);
+    strcpy(code_filename, filename);
+    strcat(code_filename, ".asm");
+    file_write(cg.code, cg.len, code_filename);
+    heap_alloc.dealloc(cg.code);
+
+    unsigned obj_filename_len = (unsigned)strlen(filename) + 4;
+    char* obj_filename = (char*)ta.alloc(obj_filename_len);
+    strcpy(obj_filename, filename);
+    strcat(obj_filename, ".obj");
+
+    const char* asm_format = "nasm -f win32 -o %s %s";
+    unsigned asm_cmd_len = (unsigned)strlen(asm_format) + obj_filename_len + code_filename_len;
+    char* asm_cmd = (char*)ta.alloc(asm_cmd_len);
+    sprintf(asm_cmd, asm_format, obj_filename, code_filename);
+    system(asm_cmd);
+
+    const char* link_format = "golink %s";
+    unsigned link_cmd_len = (unsigned)strlen(link_format) + obj_filename_len;
+    char* link_cmd = (char*)ta.alloc(link_cmd_len);
+    sprintf(link_cmd, link_format, obj_filename);
+    system(link_cmd);
+   
+    heap_allocator_check_clean(&heap_alloc);
 
     return 0;
 }
