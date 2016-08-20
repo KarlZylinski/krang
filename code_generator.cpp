@@ -6,22 +6,22 @@
 struct CodeGeneratorState
 {
     char* out;
-    unsigned len;
-    unsigned cap;
+    size_t len;
+    size_t cap;
     Allocator* allocator;
 };
 
-static void grow(CodeGeneratorState* cs, unsigned min_size)
+static void grow(CodeGeneratorState* cs, size_t min_size)
 {
     char* old_out = cs->out;
-    unsigned new_cap = cs->cap == 0 ? min_size * 2 : min_size + cs->cap * 2;
+    size_t new_cap = cs->cap == 0 ? min_size * 2 : min_size + cs->cap * 2;
     cs->out = (char*)cs->allocator->alloc(new_cap);
     cs->cap = new_cap;
     memcpy(cs->out, old_out, cs->len);
     cs->allocator->dealloc(old_out);
 }
 
-static void add_code(CodeGeneratorState* cs, const char* code, unsigned len)
+static void add_code(CodeGeneratorState* cs, const char* code, size_t len)
 {
     if (cs->len + len > cs->cap)
         grow(cs, len);
@@ -35,12 +35,12 @@ static void generate_scope(CodeGeneratorState* cs, const ParseScope& ps);
 const static char* prologue =
     "push ebp\n"
     "mov ebp, esp\n";
-const static unsigned prologue_len = (unsigned)strlen(prologue);
+const static size_t prologue_len = strlen(prologue);
 
 const static char* epilogue =
     "\nmov esp, ebp\n"
     "pop ebp\n";
-const static unsigned epilogue_len = (unsigned)strlen(epilogue);
+const static size_t epilogue_len = strlen(epilogue);
 
 static void generate_function_def(CodeGeneratorState* cs, const ParseFunctionDef& def)
 {
@@ -57,14 +57,14 @@ static void generate_function_call(CodeGeneratorState* cs, const ParseFunctionCa
         Assert(call.parameters.num <= 1, "Error in code generator: More than 1 return value.");
         const static char* ret_mov =
             "mov eax, ";
-        const static unsigned ret_mov_len = (unsigned)strlen(ret_mov);
+        const static size_t ret_mov_len = strlen(ret_mov);
 
         add_code(cs, ret_mov, ret_mov_len);
         add_code(cs, call.parameters[0].str_val, call.parameters[0].str_val_len);
         add_code(cs, epilogue, epilogue_len);
 
         const static char* ret = "ret\n";
-        const static unsigned ret_len = (unsigned)strlen(ret);
+        const static size_t ret_len = strlen(ret);
         
         add_code(cs, ret, ret_len);
         return;
@@ -95,16 +95,16 @@ static char* uint32_to_str(unsigned num)
 }
 
 static const char* reserve_space_for_var = "add esp, ";
-static const unsigned reserve_space_for_var_len = (unsigned)strlen(reserve_space_for_var);
+static const size_t reserve_space_for_var_len = strlen(reserve_space_for_var);
 
 static const char* mov_init_val = "\nmov dword [ebp- ";
-static const unsigned mov_init_val_len = (unsigned)strlen(mov_init_val);
+static const size_t mov_init_val_len = strlen(mov_init_val);
 
 static void generate_variable_decl(CodeGeneratorState* cs, const ParseVariableDecl& decl)
 {
     add_code(cs, reserve_space_for_var, reserve_space_for_var_len);
     char* size_str = uint32_to_str(data_type_size(decl.type));
-    unsigned size_str_len = (unsigned)strlen(size_str);
+    size_t size_str_len = strlen(size_str);
     add_code(cs, size_str, size_str_len);
     add_code(cs, mov_init_val, mov_init_val_len);
     add_code(cs, size_str, size_str_len);
@@ -116,7 +116,7 @@ static void generate_variable_decl(CodeGeneratorState* cs, const ParseVariableDe
 static void generate_variable_assignment(CodeGeneratorState* cs, const ParseVariableAssignment& assign)
 {
     char* size_str = uint32_to_str(4);
-    unsigned size_str_len = (unsigned)strlen(size_str);
+    size_t size_str_len = strlen(size_str);
     add_code(cs, mov_init_val, mov_init_val_len);
     add_code(cs, size_str, size_str_len);
     add_code(cs, "], ", 2);
@@ -160,7 +160,7 @@ GeneratedCode generate_code(Allocator* alloc, const ParseScope& ps)
     CodeGeneratorState cs = {};
     cs.allocator = alloc;
     static const char* code_sect = "section .code\n";
-    add_code(&cs, code_sect, (unsigned)strlen(code_sect));
+    add_code(&cs, code_sect, strlen(code_sect));
     generate_scope(&cs, ps);
     GeneratedCode gc = {};
     gc.code = cs.out;

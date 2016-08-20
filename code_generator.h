@@ -3,7 +3,7 @@
 struct GeneratedCode
 {
     char* code;
-    unsigned len;
+    size_t len;
 };
 
 struct Allocator;

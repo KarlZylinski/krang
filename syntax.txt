@@ -10,6 +10,7 @@ u64
 f32
 f64
 
+# comment comment
 i32 start()
 {
     loop 0, 5

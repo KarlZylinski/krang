@@ -30,4 +30,4 @@ struct LexerResult
     Allocator* allocator;
 };
 
-LexerResult lex(char* data, unsigned size, Allocator* allocator);
+LexerResult lex(char* data, size_t size, Allocator* allocator);

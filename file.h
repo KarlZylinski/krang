@@ -5,7 +5,7 @@ struct Allocator;
 struct File
 {
     unsigned char* data;
-    unsigned size;
+    size_t size;
 };
 
 struct LoadedFile
@@ -15,4 +15,4 @@ struct LoadedFile
 };
 
 LoadedFile file_load(Allocator* alloc, const char* filename);
-bool file_write(void* data, unsigned size, const char* filename);
+bool file_write(void* data, size_t size, const char* filename);

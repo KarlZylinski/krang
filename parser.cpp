@@ -12,7 +12,7 @@ struct ParserState
     Allocator* allocator;
 };
 
-static DataType parse_type_name(char* name, unsigned len)
+static DataType parse_type_name(char* name, size_t len)
 {
     if (memcmp(name, "i32", len) == 0)
     {
@@ -23,7 +23,7 @@ static DataType parse_type_name(char* name, unsigned len)
     return (DataType)(-1);
 }
 
-static unsigned num_tokens_diff(const LexToken* s, const LexToken* e)
+static size_t num_tokens_diff(const LexToken* s, const LexToken* e)
 {
     return mem_ptr_diff(s, e) / sizeof(LexToken);
 }

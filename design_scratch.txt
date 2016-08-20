@@ -1,0 +1,55 @@
+enum struct AsmChunkType
+{
+    Prologue,
+    Epilogue,
+    ReserveLocalVar
+}
+
+struct AsmChunk
+{
+
+}
+
+enum struct AsmChunkInstructionType
+{
+    Add,
+    Mov,
+    Pop
+    Push,
+    Ret
+};
+
+struct AsmChunkInstruction
+{
+    AsmChunkInstructionType instr;
+    Operator op1;
+    Operator op2;
+};
+
+struct Str
+{
+    char* val;
+    size_t len;
+};
+
+struct AsmChunkLabel
+{
+    Str label;
+};
+
+enum struct AsmChunkType
+{
+    Instruction,
+    Label
+};
+
+struct AsmChunk
+{
+    AsmChunkType type;
+    
+    union
+    {
+        AsmChunkInstruction instrution;
+        AsmChunkLabel label;
+    }
+};

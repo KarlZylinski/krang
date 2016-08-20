@@ -23,7 +23,7 @@ static void lex_name(LexerState* ls)
     while (*ls->head >= 'a' && *ls->head <= 'z' || *ls->head >= '0' && *ls->head <= '9')
         ++ls->head;
 
-    add_lex(ls, LexTokenType::Name, val, mem_ptr_diff(val, ls->head));
+    add_lex(ls, LexTokenType::Name, val, (unsigned)mem_ptr_diff(val, ls->head));
 }
 
 static void lex_num_literal(LexerState* ls)
@@ -33,7 +33,7 @@ static void lex_num_literal(LexerState* ls)
     while (*ls->head >= '0' && *ls->head <= '9')
         ++ls->head;
 
-    add_lex(ls, LexTokenType::Int32Literal, val, mem_ptr_diff(val, ls->head));
+    add_lex(ls, LexTokenType::Int32Literal, val, (unsigned)mem_ptr_diff(val, ls->head));
 }
 
 static void run_lex(LexerState* ls)
@@ -128,7 +128,7 @@ static void add_action_count(LexerState* ls, LexTokenType type, char* val, unsig
     ++ls->out_num;
 }
 
-LexerResult lex(char* data, unsigned size, Allocator* allocator)
+LexerResult lex(char* data, size_t size, Allocator* allocator)
 {
     LexerState ls = {};
     ls.start = data;

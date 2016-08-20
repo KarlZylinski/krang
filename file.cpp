@@ -29,7 +29,7 @@ LoadedFile file_load(Allocator* alloc, const char* filename)
     return {true, file};
 }
 
-bool file_write(void* data, unsigned size, const char* filename)
+bool file_write(void* data, size_t size, const char* filename)
 {
     FILE* file_handle = fopen(filename, "wb");
 

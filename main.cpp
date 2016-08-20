@@ -48,26 +48,26 @@ int main(int argc, char** argv)
     GeneratedCode cg = generate_code(&heap_alloc, ps);
 
     Allocator ta = create_temp_allocator();
-    unsigned code_filename_len = (unsigned)strlen(filename) + 4;
+    size_t code_filename_len = strlen(filename) + 4;
     char* code_filename = (char*)ta.alloc(code_filename_len);
     strcpy(code_filename, filename);
     strcat(code_filename, ".asm");
     file_write(cg.code, cg.len, code_filename);
     heap_alloc.dealloc(cg.code);
 
-    unsigned obj_filename_len = (unsigned)strlen(filename) + 4;
+    size_t obj_filename_len = strlen(filename) + 4;
     char* obj_filename = (char*)ta.alloc(obj_filename_len);
     strcpy(obj_filename, filename);
     strcat(obj_filename, ".obj");
 
     const char* asm_format = "nasm -f win32 -o %s %s";
-    unsigned asm_cmd_len = (unsigned)strlen(asm_format) + obj_filename_len + code_filename_len;
+    size_t asm_cmd_len = strlen(asm_format) + obj_filename_len + code_filename_len;
     char* asm_cmd = (char*)ta.alloc(asm_cmd_len);
     sprintf(asm_cmd, asm_format, obj_filename, code_filename);
     system(asm_cmd);
 
     const char* link_format = "golink %s";
-    unsigned link_cmd_len = (unsigned)strlen(link_format) + obj_filename_len;
+    size_t link_cmd_len = strlen(link_format) + obj_filename_len;
     char* link_cmd = (char*)ta.alloc(link_cmd_len);
     sprintf(link_cmd, link_format, obj_filename);
     system(link_cmd);

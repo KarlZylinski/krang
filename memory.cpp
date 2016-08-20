@@ -2,17 +2,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-unsigned mem_ptr_diff(const void* ptr1, const void* ptr2)
+size_t mem_ptr_diff(const void* ptr1, const void* ptr2)
 {
-    return (unsigned)((unsigned char*)ptr2 - (unsigned char*)ptr1);
+    return ((unsigned char*)ptr2 - (unsigned char*)ptr1);
 }
 
-void* mem_ptr_add(const void* ptr1, unsigned offset)
+void* mem_ptr_add(const void* ptr1, size_t offset)
 {
     return (void*)((unsigned char*)ptr1 + offset);
 }
 
-void* mem_ptr_sub(const void* ptr1, unsigned offset)
+void* mem_ptr_sub(const void* ptr1, size_t offset)
 {
     return (void*)((unsigned char*)ptr1 - offset);
 }
@@ -25,19 +25,19 @@ void* mem_align_forward(const void* p, unsigned align)
     if (mod)
         pi += (align - mod);
 
-    return (void *)pi;
+    return (void*)pi;
 }
 
 struct PermanentMemoryStorage
 {
     unsigned char* start;
     unsigned char* head;
-    unsigned capacity;
+    size_t capacity;
 };
 
 static PermanentMemoryStorage pms;
 
-void permanent_memory_blob_init(void* start, unsigned capacity)
+void permanent_memory_blob_init(void* start, size_t capacity)
 {
     memset(&pms, 0, sizeof(PermanentMemorySize));
     pms.start = (unsigned char*)start;
@@ -45,7 +45,7 @@ void permanent_memory_blob_init(void* start, unsigned capacity)
     pms.capacity = capacity;
 }
 
-void* permanent_alloc(unsigned size, unsigned align)
+void* permanent_alloc(size_t size, unsigned align)
 {
     Assert(mem_ptr_diff(pms.start, pms.head) + size + align <= pms.capacity, "Out of permanent memory.");
     void* p = mem_align_forward(pms.head, align);
@@ -57,12 +57,12 @@ struct TempMemoryStorage
 {
     unsigned char* start;
     unsigned char* head;
-    unsigned capacity;
+    size_t capacity;
 };
 
 static TempMemoryStorage tms;
 
-void temp_memory_blob_init(void* start, unsigned capacity)
+void temp_memory_blob_init(void* start, size_t capacity)
 {
     memset(&tms, 0, sizeof(TempMemoryStorage));
     tms.start = (unsigned char*)start;
@@ -70,15 +70,20 @@ void temp_memory_blob_init(void* start, unsigned capacity)
     tms.capacity = capacity;
 }
 
+size_t temp_memory_used()
+{
+    return mem_ptr_diff(tms.start, tms.head);
+}
+
 struct TempMemoryHeader
 {
     bool freed;
     TempMemoryHeader* prev;
     TempMemoryHeader* prev_for_allocator;
-    unsigned offset_to_next;
+    size_t offset_to_next;
 };
 
-static void* temp_memory_blob_alloc(unsigned size, void* allocator_latest, unsigned align)
+static void* temp_memory_blob_alloc(size_t size, void* allocator_latest, unsigned align)
 {
     static const unsigned header_align = alignof(TempMemoryHeader);
     static const unsigned header_size = sizeof(TempMemoryHeader);
@@ -107,7 +112,7 @@ static void* temp_memory_blob_alloc(unsigned size, void* allocator_latest, unsig
     // The reason we add the diff_to_header is so we know how far back the header is, since the diff caused by the alignment varies.
     void* after_header = mem_ptr_add(tmh, header_size + diff_to_header_size);
     void* ptr_return = mem_align_forward(after_header, align);
-    unsigned diff_to_header = mem_ptr_diff(tmh, ptr_return);
+    unsigned diff_to_header = (unsigned)mem_ptr_diff(tmh, ptr_return);
     *(unsigned*)mem_ptr_sub(ptr_return, diff_to_header_size) = diff_to_header;
     return ptr_return;
 }
@@ -144,7 +149,7 @@ static void temp_memory_blob_dealloc(void* ptr)
         : (unsigned char*)mem_ptr_add(tmh, tmh->offset_to_next);
 }
 
-void* temp_allocator_alloc(Allocator* allocator, unsigned size, unsigned align)
+void* temp_allocator_alloc(Allocator* allocator, size_t size, unsigned align)
 {
     void* p = temp_memory_blob_alloc(size, allocator->last_alloc, align);
     Assert(p != nullptr, "Failed to allocate memory.");
@@ -206,10 +211,10 @@ static void ensure_captured_callstacks_unused(CapturedCallstack* callstacks)
 }
 #endif
 
-void* heap_allocator_alloc(Allocator* allocator, unsigned size, unsigned align)
+void* heap_allocator_alloc(Allocator* allocator, size_t size, unsigned align)
 {
     ++allocator->num_allocations;
-    static const unsigned diff_to_header_size = sizeof(unsigned);
+    static const unsigned diff_to_header_size = sizeof(size_t);
     void* p = malloc(size + align + diff_to_header_size);
 
     #if defined(ENABLE_MEMORY_TRACING)
@@ -226,8 +231,8 @@ void* heap_allocator_alloc(Allocator* allocator, unsigned size, unsigned align)
     void* after_header = mem_ptr_add(p, diff_to_header_size);
     void* ptr_return = mem_align_forward(after_header, align);
     // Since we don't know how much we align every time, we have a little header which says how far back the actual ptr lives.
-    unsigned diff_to_header = mem_ptr_diff(p, ptr_return);
-    *(unsigned*)mem_ptr_sub(ptr_return, diff_to_header_size) = diff_to_header;
+    size_t diff_to_header = mem_ptr_diff(p, ptr_return);
+    *(size_t*)mem_ptr_sub(ptr_return, diff_to_header_size) = diff_to_header;
     return ptr_return;
 }
 
@@ -236,7 +241,7 @@ void heap_allocator_dealloc(Allocator* allocator, void* aligned_ptr)
     if (aligned_ptr == nullptr)
         return;
 
-    unsigned diff_to_header = *(unsigned*)mem_ptr_sub(aligned_ptr, sizeof(unsigned));
+    size_t diff_to_header = *(size_t*)mem_ptr_sub(aligned_ptr, sizeof(size_t));
     void* p = mem_ptr_sub(aligned_ptr, diff_to_header);
 
     #if defined(ENABLE_MEMORY_TRACING)
@@ -256,7 +261,7 @@ void heap_allocator_check_clean(Allocator* allocator)
     Assert(allocator->num_allocations == 0, "Heap allocator not clean on shutdown.");
 }
 
-void* permanent_allocator_alloc(Allocator* allocator, unsigned size, unsigned align)
+void* permanent_allocator_alloc(Allocator* allocator, size_t size, unsigned align)
 {
     return permanent_alloc(size, align);
 }
