@@ -3,7 +3,7 @@
 #include "dynamic_array.h"
 
 struct Allocator;
-struct LexToken;
+struct Token;
 
 enum struct DataType
 {
@@ -105,4 +105,4 @@ struct ParseNode
     };
 };
 
-ParseScope parse(Allocator* alloc, const LexToken* lex_tokens, size_t num_lex_tokens);
+ParseScope parse(Allocator* alloc, const Token* lex_tokens, size_t num_lex_tokens);

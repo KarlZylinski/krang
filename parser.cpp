@@ -2,19 +2,19 @@
 #include <string.h>
 #include <stdlib.h>
 #include "memory.h"
-#include "lexer.h"
+#include "tokenizer.h"
 
 struct ParserState
 {
-    const LexToken* start;
-    const LexToken* head;
-    const LexToken* end;
+    const Token* start;
+    const Token* head;
+    const Token* end;
     Allocator* allocator;
 };
 
 static DataType parse_type_name(ParserState* ps)
 {
-    Assert(ps->head->type == LexTokenType::Name, "Error in parser: Tried to parse invalid type name.");
+    Assert(ps->head->type == Token::Type::Name, "Error in parser: Tried to parse invalid type name.");
     if (str_equal(ps->head->val, "i32", ps->head->len))
     {
         ++ps->head;
@@ -25,17 +25,17 @@ static DataType parse_type_name(ParserState* ps)
     return (DataType)(-1);
 }
 
-static size_t num_tokens_diff(const LexToken* s, const LexToken* e)
+static size_t num_tokens_diff(const Token* s, const Token* e)
 {
-    return mem_ptr_diff(s, e) / sizeof(LexToken);
+    return mem_ptr_diff(s, e) / sizeof(Token);
 }
 
 static bool parse_func_def_check(ParserState* ps)
 {
     return num_tokens_diff(ps->head, ps->end) >= 2
-        && ps->head->type == LexTokenType::Name
-        && (ps->head + 1)->type == LexTokenType::Name
-        && (ps->head + 2)->type == LexTokenType::ArgStart;
+        && ps->head->type == Token::Type::Name
+        && (ps->head + 1)->type == Token::Type::Name
+        && (ps->head + 2)->type == Token::Type::ArgStart;
 }
 
 static void parse_scope(ParserState* ps, ParseScope* scope, bool close_on_statement_end = true);
@@ -59,7 +59,7 @@ static void parse_func_def(ParserState* ps, ParseScope* scope)
 
 static Value parse_value(ParserState* ps)
 {
-    const LexToken& t = *ps->head;
+    const Token& t = *ps->head;
     Value v = {};
     v.type = DataType::Int32;
     v.int32_literal_val = atoi(t.val);
@@ -73,18 +73,18 @@ static void parse_func_call_parameters(ParserState* ps, DynamicArray<Value>* par
 {
     while (ps->head < ps->end)
     {
-        const LexToken& t = *ps->head;
-        const LexToken* t_ptr = ps->head;
+        const Token& t = *ps->head;
+        const Token* t_ptr = ps->head;
 
         switch (t.type)
         {
-            case LexTokenType::Literal:
+            case Token::Type::Literal:
                     parameters->add(parse_value(ps));
                 break;
-            case LexTokenType::ArgStart:
+            case Token::Type::ArgStart:
                 ++ps->head;
                 break;
-            case LexTokenType::ArgEnd:
+            case Token::Type::ArgEnd:
                 ++ps->head;
                 return;
             default:
@@ -99,8 +99,8 @@ static void parse_func_call_parameters(ParserState* ps, DynamicArray<Value>* par
 static bool parse_func_call_check(ParserState* ps)
 {
     return num_tokens_diff(ps->head, ps->end) >= 2
-        && ps->head->type == LexTokenType::Name
-        && (ps->head + 1)->type == LexTokenType::ArgStart;
+        && ps->head->type == Token::Type::Name
+        && (ps->head + 1)->type == Token::Type::ArgStart;
 }
 
 static void parse_func_call(ParserState* ps, ParseScope* scope)
@@ -117,7 +117,7 @@ static void parse_func_call(ParserState* ps, ParseScope* scope)
 }
 
 #define parse_loop_check (num_tokens_diff(ps->head, ps->end) >= 1 \
-        && ps->head->type == LexTokenType::Name \
+        && ps->head->type == Token::Type::Name \
         && memcmp(ps->head->val, "loop", ps->head->len) == 0)
 
 static void parse_loop(ParserState* ps, ParseScope* scope)
@@ -151,9 +151,9 @@ static ParseExpression parse_expression(ParserState* ps)
 static bool parse_variable_decl_check(ParserState* ps)
 {
     return num_tokens_diff(ps->head, ps->end) >= 3
-        && ps->head->type == LexTokenType::Name
+        && ps->head->type == Token::Type::Name
         && (memcmp(ps->head->val, "let", ps->head->len) == 0 || memcmp(ps->head->val, "mut", ps->head->len) == 0)
-        && (ps->head + 1)->type == LexTokenType::Name;
+        && (ps->head + 1)->type == Token::Type::Name;
 }
 
 static void parse_variable_decl(ParserState* ps, ParseScope* scope)
@@ -175,8 +175,8 @@ static void parse_variable_decl(ParserState* ps, ParseScope* scope)
 static bool is_variable_assignment(ParserState* ps)
 {
     return num_tokens_diff(ps->head, ps->end) >= 2
-        && ps->head->type == LexTokenType::Name
-        && (ps->head + 1)->type == LexTokenType::Assignment;
+        && ps->head->type == Token::Type::Name
+        && (ps->head + 1)->type == Token::Type::Assignment;
 }
 
 static void parse_variable_assignment(ParserState* ps, ParseScope* scope)
@@ -224,29 +224,29 @@ static void parse_scope(ParserState* ps, ParseScope* scope, bool close_on_statem
 {
     while (ps->start < ps->end)
     {
-        const LexToken& t = *ps->head;
-        const LexToken* t_ptr = ps->head;
+        const Token& t = *ps->head;
+        const Token* t_ptr = ps->head;
 
         switch (t.type)
         {
-            case LexTokenType::Name:
+            case Token::Type::Name:
                 parse_name_in_scope(ps, scope);
                 break;
-            case LexTokenType::StatementEnd:
+            case Token::Type::StatementEnd:
                 ++ps->head;
                 if (close_on_statement_end)
                     return;
                 else
                     break;
-            case LexTokenType::ScopeStart:
+            case Token::Type::ScopeStart:
                 ++ps->head;
                 close_on_statement_end = false;
                 return;
-            case LexTokenType::ScopeEnd:
+            case Token::Type::ScopeEnd:
                 Assert(close_on_statement_end == false, "Error in parser: Scope start end mismatch.");
                 ++ps->head;
                 return;
-            case LexTokenType::EndOfFile:
+            case Token::Type::EndOfFile:
                 Assert(close_on_statement_end == false, "Error in parser: Scope start end mismatch.");
                 return;
         }
@@ -255,7 +255,7 @@ static void parse_scope(ParserState* ps, ParseScope* scope, bool close_on_statem
     }
 }
 
-ParseScope parse(Allocator* alloc, const LexToken* lex_tokens, size_t num_lex_tokens)
+ParseScope parse(Allocator* alloc, const Token* lex_tokens, size_t num_lex_tokens)
 {
     ParserState ps = {};
     ps.start = lex_tokens;

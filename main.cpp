@@ -2,7 +2,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include "file.h"
-#include "lexer.h"
+#include "tokenizer.h"
 #include "parser.h"
 #include "code_generator.h"
 
@@ -41,8 +41,8 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    LexerResult lexer_result = lex((char*)lf.file.data, lf.file.size, &perma_alloc);
-    ParseScope ps = parse(&perma_alloc, lexer_result.data, lexer_result.num);
+    TokenizerResult tokenizer_result = tokenize((char*)lf.file.data, lf.file.size, &perma_alloc);
+    ParseScope ps = parse(&perma_alloc, tokenizer_result.data, tokenizer_result.num);
 
     Allocator heap_alloc = create_heap_allocator();
     GeneratedCode cg = generate_code(&heap_alloc, ps);
