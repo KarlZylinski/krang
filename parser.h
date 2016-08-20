@@ -17,7 +17,7 @@ enum struct ParseNodeType
     FunctionCall,
     Loop,
     VariableDecl,
-    VariableAssigment
+    VariableAssignment
 };
 
 enum struct ValueType
@@ -86,11 +86,11 @@ struct ParseVariableDecl
     ParseExpression value_expr;
 };
 
-struct ParseVariableAssigment
+struct ParseVariableAssignment
 {
     char* name;
     unsigned name_len;
-    ParseScope value_parse_scope;
+    ParseExpression value_expr;
 };
 
 struct ParseNode
@@ -104,7 +104,7 @@ struct ParseNode
         ParseFunctionCall function_call;
         ParseLoop loop;
         ParseVariableDecl variable_decl;
-        ParseVariableAssigment variable_assign;
+        ParseVariableAssignment variable_assignment;
     };
 };
 

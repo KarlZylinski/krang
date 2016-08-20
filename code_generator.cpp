@@ -73,6 +73,57 @@ static void generate_function_call(CodeGeneratorState* cs, const ParseFunctionCa
     Error("Error in code generator: Unknown function call type.");
 }
 
+static unsigned data_type_size(DataType type)
+{
+    switch(type)
+    {
+        case DataType::Int32:
+            return 4;
+            break;
+    }
+
+    Error("No size set for data type.");
+    return 0;
+}
+
+static char* uint32_to_str(unsigned num)
+{
+    const unsigned buf_size = 4096;
+    static char buf[buf_size];
+    snprintf(buf, sizeof(buf_size), "%u", num);
+    return buf;
+}
+
+static const char* reserve_space_for_var = "add esp, ";
+static const unsigned reserve_space_for_var_len = (unsigned)strlen(reserve_space_for_var);
+
+static const char* mov_init_val = "\nmov dword [ebp- ";
+static const unsigned mov_init_val_len = (unsigned)strlen(mov_init_val);
+
+static void generate_variable_decl(CodeGeneratorState* cs, const ParseVariableDecl& decl)
+{
+    add_code(cs, reserve_space_for_var, reserve_space_for_var_len);
+    char* size_str = uint32_to_str(data_type_size(decl.type));
+    unsigned size_str_len = (unsigned)strlen(size_str);
+    add_code(cs, size_str, size_str_len);
+    add_code(cs, mov_init_val, mov_init_val_len);
+    add_code(cs, size_str, size_str_len);
+    add_code(cs, "], ", 2);
+    add_code(cs, decl.value_expr.operand1.str_val, decl.value_expr.operand1.str_val_len);
+    add_code(cs, "\n", 1);
+}
+
+static void generate_variable_assignment(CodeGeneratorState* cs, const ParseVariableAssignment& assign)
+{
+    char* size_str = uint32_to_str(4);
+    unsigned size_str_len = (unsigned)strlen(size_str);
+    add_code(cs, mov_init_val, mov_init_val_len);
+    add_code(cs, size_str, size_str_len);
+    add_code(cs, "], ", 2);
+    add_code(cs, assign.value_expr.operand1.str_val, assign.value_expr.operand1.str_val_len);
+    add_code(cs, "\n", 1);
+}
+
 static void generate_scope(CodeGeneratorState* cs, const ParseScope& ps)
 {
     for (unsigned i = 0; i < ps.nodes.num; ++i)
@@ -87,6 +138,14 @@ static void generate_scope(CodeGeneratorState* cs, const ParseScope& ps)
 
             case ParseNodeType::FunctionCall:
                 generate_function_call(cs, pn.function_call);
+                break;
+
+            case ParseNodeType::VariableDecl:
+                generate_variable_decl(cs, pn.variable_decl);
+                break;
+
+            case ParseNodeType::VariableAssignment:
+                generate_variable_assignment(cs, pn.variable_assignment);
                 break;
 
             default:

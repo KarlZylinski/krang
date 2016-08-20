@@ -1,6 +1,14 @@
 i32 start()
 {
+
+    # (lit 0 0)
     i32 x = 0
+    # (add 5 2)
+    #i32 y = 5 + 2
+    # (add x (div 4 2))
+    #i32 z = x + 4 / 2
+    #i32 a = x + y + 3
 
     ret(0)
 }
+

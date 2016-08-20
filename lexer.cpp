@@ -79,9 +79,14 @@ static void run_lex(LexerState* ls)
                 add_lex(ls, LexTokenType::EndOfFile, ls->head, 1);
                 ++ls->head;
                 break;
+            case '#':
+                while (*ls->head != '\n' && !(*ls->head == '\r' && ls->head < ls->end && *(ls->head + 1) == '\n'))
+                    ++ls->head;
+                break;
             case ' ':
             case '\t':
-                ++ls->head;
+                while (*ls->head == ' ' || *ls->head == '\t')
+                    ++ls->head;
                 break;
             default:
             {

@@ -127,10 +127,6 @@ static void parse_loop(ParserState* ps, ParseScope* scope)
     parse_scope(ps, &pl.scope);
 }
 
-#define parse_variable_decl_check (num_tokens_diff(ps->head, ps->end) >= 3 \
-        && ps->head->type == LexTokenType::Name \
-        && (ps->head + 1)->type == LexTokenType::Name \
-        && (ps->head + 2)->type != LexTokenType::ArgStart) // To not confuse with function decls.
 
 static ParseExpression parse_expression(ParserState* ps)
 {
@@ -147,6 +143,11 @@ static ParseExpression parse_expression(ParserState* ps)
 
 }
 
+#define parse_variable_decl_check (num_tokens_diff(ps->head, ps->end) >= 3 \
+        && ps->head->type == LexTokenType::Name \
+        && (ps->head + 1)->type == LexTokenType::Name \
+        && (ps->head + 2)->type != LexTokenType::ArgStart) // To not confuse with function decls.
+
 static void parse_variable_decl(ParserState* ps, ParseScope* scope)
 {
     Assert(parse_variable_decl_check, "Error in parser: Invalid variable decl.");
@@ -162,9 +163,28 @@ static void parse_variable_decl(ParserState* ps, ParseScope* scope)
     vd.value_expr = parse_expression(ps);
 }
 
+static bool is_variable_assignment(ParserState* ps)
+{
+    return num_tokens_diff(ps->head, ps->end) >= 2
+        && ps->head->type == LexTokenType::Name
+        && (ps->head + 1)->type == LexTokenType::Assignment;
+}
+
+static void parse_variable_assignment(ParserState* ps, ParseScope* scope)
+{
+    Assert(is_variable_assignment(ps), "Error in parser: Invalid variable assignment.");
+    ParseNode* n = scope->nodes.push_init();
+    n->type = ParseNodeType::VariableAssignment;
+    ParseVariableAssignment& va = n->variable_assignment;
+    va.name = ps->head->val;
+    va.name_len = ps->head->len;
+    ++ps->head; // name done
+    ++ps->head; // get rid of assignment op
+    va.value_expr = parse_expression(ps);
+}
+
 static void parse_name_in_scope(ParserState* ps, ParseScope* scope)
 {
-    // maybe func def, minimum type, name and parentheses
     if (parse_func_def_check)
     {
         parse_func_def(ps, scope);
@@ -180,6 +200,10 @@ static void parse_name_in_scope(ParserState* ps, ParseScope* scope)
     else if (parse_variable_decl_check)
     {
         parse_variable_decl(ps, scope);
+    }
+    else if (is_variable_assignment(ps))
+    {
+        parse_variable_assignment(ps, scope);
     }
     else
     {
