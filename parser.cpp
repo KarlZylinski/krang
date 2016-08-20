@@ -12,10 +12,12 @@ struct ParserState
     Allocator* allocator;
 };
 
-static DataType parse_type_name(char* name, size_t len)
+static DataType parse_type_name(ParserState* ps)
 {
-    if (memcmp(name, "i32", len) == 0)
+    Assert(ps->head->type == LexTokenType::Name, "Error in parser: Tried to parse invalid type name.");
+    if (str_equal(ps->head->val, "i32", ps->head->len))
     {
+        ++ps->head;
         return DataType::Int32;
     }
 
@@ -28,40 +30,38 @@ static size_t num_tokens_diff(const LexToken* s, const LexToken* e)
     return mem_ptr_diff(s, e) / sizeof(LexToken);
 }
 
-#define parse_func_def_check (num_tokens_diff(ps->head, ps->end) >= 3 \
-        && ps->head->type == LexTokenType::Name \
-        && (ps->head + 1)->type == LexTokenType::Name \
-        && (ps->head + 2)->type == LexTokenType::ArgStart)
+static bool parse_func_def_check(ParserState* ps)
+{
+    return num_tokens_diff(ps->head, ps->end) >= 2
+        && ps->head->type == LexTokenType::Name
+        && (ps->head + 1)->type == LexTokenType::Name
+        && (ps->head + 2)->type == LexTokenType::ArgStart;
+}
 
 static void parse_scope(ParserState* ps, ParseScope* scope, bool close_on_statement_end = true);
 
 static void parse_func_def(ParserState* ps, ParseScope* scope)
 {
-    Assert(parse_func_def_check, "Error in parser: Invalid func def.");
+    Assert(parse_func_def_check(ps), "Error in parser: Invalid func def.");
     ParseNode* n = scope->nodes.push_init();
     n->type = ParseNodeType::FunctionDef;
     ParseFunctionDef& pfd = n->function_def;
-    pfd.return_type = parse_type_name(ps->head->val, ps->head->len);
-    ++ps->head;
+    pfd.return_type = parse_type_name(ps);
     pfd.name = ps->head->val;
     pfd.name_len = ps->head->len;
-    ++ps->head;
+    ++ps->head; // name
+    ++ps->head; // arg start
+    // TODO: READ ARGS
+    ++ps->head; // arg end
     pfd.scope.nodes = dynamic_array_create<ParseNode>(ps->allocator);
-    ++ps->head;
-
-    // Add arg parsing here.
-    ++ps->head;
-    ++ps->head;
-
-    // For opening
-    parse_scope(ps, &pfd.scope);
+    parse_scope(ps, &pfd.scope, false);
 }
 
 static Value parse_value(ParserState* ps)
 {
     const LexToken& t = *ps->head;
     Value v = {};
-    v.type = ValueType::Int32Literal;
+    v.type = DataType::Int32;
     v.int32_literal_val = atoi(t.val);
     v.str_val = t.val;
     v.str_val_len = t.len;
@@ -78,8 +78,11 @@ static void parse_func_call_parameters(ParserState* ps, DynamicArray<Value>* par
 
         switch (t.type)
         {
-            case LexTokenType::Int32Literal:
+            case LexTokenType::Literal:
                     parameters->add(parse_value(ps));
+                break;
+            case LexTokenType::ArgStart:
+                ++ps->head;
                 break;
             case LexTokenType::ArgEnd:
                 ++ps->head;
@@ -93,13 +96,16 @@ static void parse_func_call_parameters(ParserState* ps, DynamicArray<Value>* par
     }
 }
 
-#define parse_func_call_check (num_tokens_diff(ps->head, ps->end) >= 2 \
-        && ps->head->type == LexTokenType::Name \
-        && (ps->head + 1)->type == LexTokenType::ArgStart)
+static bool parse_func_call_check(ParserState* ps)
+{
+    return num_tokens_diff(ps->head, ps->end) >= 2
+        && ps->head->type == LexTokenType::Name
+        && (ps->head + 1)->type == LexTokenType::ArgStart;
+}
 
 static void parse_func_call(ParserState* ps, ParseScope* scope)
 {
-    Assert(parse_func_call_check, "Error in parser: Invalid func call.");
+    Assert(parse_func_call_check(ps), "Error in parser: Invalid func call.");
     ParseNode* n = scope->nodes.push_init();
     n->type = ParseNodeType::FunctionCall;
     ParseFunctionCall& pfc = n->function_call;
@@ -107,7 +113,6 @@ static void parse_func_call(ParserState* ps, ParseScope* scope)
     pfc.name_len = ps->head->len;
     ++ps->head;
     pfc.parameters = dynamic_array_create<Value>(ps->allocator);
-    ++ps->head;
     parse_func_call_parameters(ps, &pfc.parameters);
 }
 
@@ -143,24 +148,28 @@ static ParseExpression parse_expression(ParserState* ps)
 
 }
 
-#define parse_variable_decl_check (num_tokens_diff(ps->head, ps->end) >= 3 \
-        && ps->head->type == LexTokenType::Name \
-        && (ps->head + 1)->type == LexTokenType::Name \
-        && (ps->head + 2)->type != LexTokenType::ArgStart) // To not confuse with function decls.
+static bool parse_variable_decl_check(ParserState* ps)
+{
+    return num_tokens_diff(ps->head, ps->end) >= 3
+        && ps->head->type == LexTokenType::Name
+        && (memcmp(ps->head->val, "let", ps->head->len) == 0 || memcmp(ps->head->val, "mut", ps->head->len) == 0)
+        && (ps->head + 1)->type == LexTokenType::Name;
+}
 
 static void parse_variable_decl(ParserState* ps, ParseScope* scope)
 {
-    Assert(parse_variable_decl_check, "Error in parser: Invalid variable decl.");
+    Assert(parse_variable_decl_check(ps), "Error in parser: Invalid variable decl.");
     ParseNode* n = scope->nodes.push_init();
     n->type = ParseNodeType::VariableDecl;
     ParseVariableDecl& vd = n->variable_decl;
-    vd.type = parse_type_name(ps->head->val, ps->head->len);
-    ++ps->head; // type done
+    vd.is_mutable = memcmp(ps->head->val, "mut", ps->head->len) == 0;
+    ++ps->head; // let/mut
     vd.name = ps->head->val;
     vd.name_len = ps->head->len;
-    ++ps->head; // name done
-    ++ps->head; // get rid of assignment op
+    ++ps->head; // name
+    ++ps->head; // assignment op
     vd.value_expr = parse_expression(ps);
+    vd.type = vd.value_expr.operand1.type;
 }
 
 static bool is_variable_assignment(ParserState* ps)
@@ -185,11 +194,11 @@ static void parse_variable_assignment(ParserState* ps, ParseScope* scope)
 
 static void parse_name_in_scope(ParserState* ps, ParseScope* scope)
 {
-    if (parse_func_def_check)
+    if (parse_func_def_check(ps))
     {
         parse_func_def(ps, scope);
     }
-    else if (parse_func_call_check)
+    else if (parse_func_call_check(ps))
     {
         parse_func_call(ps, scope);
     }
@@ -197,7 +206,7 @@ static void parse_name_in_scope(ParserState* ps, ParseScope* scope)
     {
         parse_loop(ps, scope);
     }
-    else if (parse_variable_decl_check)
+    else if (parse_variable_decl_check(ps))
     {
         parse_variable_decl(ps, scope);
     }

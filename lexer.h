@@ -9,11 +9,12 @@ enum struct LexTokenType
     ArgEnd,
     ScopeStart,
     ScopeEnd,
-    Int32Literal,
+    Literal,
     StatementEnd,
     EndOfFile,
     Assignment,
-    Operator
+    Operator,
+    Arrow
 };
 
 struct LexToken 

@@ -33,7 +33,7 @@ static void lex_num_literal(LexerState* ls)
     while (*ls->head >= '0' && *ls->head <= '9')
         ++ls->head;
 
-    add_lex(ls, LexTokenType::Int32Literal, val, (unsigned)mem_ptr_diff(val, ls->head));
+    add_lex(ls, LexTokenType::Literal, val, (unsigned)mem_ptr_diff(val, ls->head));
 }
 
 static void run_lex(LexerState* ls)
@@ -98,7 +98,12 @@ static void run_lex(LexerState* ls)
                 {
                     lex_num_literal(ls);
                 }
-                else if (c == '\r' && ls->head < ls->end && *(ls->head + 1) == '\n')
+                else if (ls->head < ls->end && c == '-' && *(ls->head + 1) == '>')
+                {
+                    add_lex(ls, LexTokenType::Arrow, ls->head, 2);
+                    ls->head += 2;
+                }
+                else if (ls->head < ls->end && c == '\r' && *(ls->head + 1) == '\n')
                 {
                     add_lex(ls, LexTokenType::StatementEnd, ls->head, 2);
                     ls->head += 2;

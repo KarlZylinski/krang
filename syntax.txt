@@ -7,26 +7,109 @@ u32
 i64
 u64
 
+size (size_t)
+ptr (void*)
+
+ptr i8 (unsigned char*)
+
 f32
 f64
+
+import memory
 
 # comment comment
 i32 start()
 {
-    loop 0, 5
-        print("%u32", i)
+    loop 0, some_size
+        print("%u32", iter)
 
-    loop
+    let x = 0
+    loop x < 12
+    {
         print("eternal loop")
+        x += 3
+    }
 
-    i8 lax = 0
+    let lax = 0 # i32
     loop lax == 0
         print("as long as lax is true")
+
+    let lax = SomeStruct
+    mut lax = SomeStruct{0}
+
+    u8 keps()
+    {
+        return 4u8;
+    }
+
+    let chips = i32 (u8 babar)
+    {
+    }
+
+    mut mjau = keps
+
+    mjau = u8 ()
+    {
+        return 5u8;
+    }
+
+    mjau()
 
     if i == 5
     {
 
     }
 
-    ret(0)
+    ret 0
 }
+
+struct SomeStruct
+{
+    i32 num
+}
+
+struct SomeOtherStruct
+{
+    u32 lax
+    SomeStruct*! s
+}
+
+do_stuff(ptr SomeStruct s) -> SomeStruct
+{
+    s.lax = 5
+    ret val s
+}
+
+calc_thing() -> u32
+{
+    ret 5 + 2
+}
+
+
+
+built in type:
+
+set_
+
+struct Allocator
+{
+    alloc(size s, u32 align = MemoryDefaultAlign) -> ptr
+    {
+        ret alloc_internal(s, align)
+    }
+
+    dealloc(ptr p) 
+    {
+
+    }
+
+    out_of_scopfunc()
+    {
+
+    }
+
+    ptr func(Allocator*, size, u32) -> ptr alloc_internal
+    ptr func(Allocator*, ptr) dealloc_internal
+    ptr func(Allocator*) out_of_scope
+}
+

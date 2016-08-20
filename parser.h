@@ -7,6 +7,7 @@ struct LexToken;
 
 enum struct DataType
 {
+    Void,
     Int32
 };
 
@@ -20,14 +21,9 @@ enum struct ParseNodeType
     VariableAssignment
 };
 
-enum struct ValueType
-{
-    Int32Literal
-};
-
 struct Value
 {
-    ValueType type;
+    DataType type;
 
     union
     {
@@ -83,6 +79,7 @@ struct ParseVariableDecl
     DataType type;
     char* name;
     unsigned name_len;
+    bool is_mutable;
     ParseExpression value_expr;
 };
 
