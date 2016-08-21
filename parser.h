@@ -1,15 +1,10 @@
 #pragma once
 #include <stdio.h>
 #include "dynamic_array.h"
+#include "data_type.h"
 
 struct Allocator;
 struct Token;
-
-enum struct DataType
-{
-    Void,
-    Int32
-};
 
 struct Value
 {

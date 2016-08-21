@@ -241,7 +241,7 @@ static void parse_scope(ParserState* ps, ParseScope* scope, bool close_on_statem
             case Token::Type::ScopeStart:
                 ++ps->head;
                 close_on_statement_end = false;
-                return;
+                break;
             case Token::Type::ScopeEnd:
                 Assert(close_on_statement_end == false, "Error in parser: Scope start end mismatch.");
                 ++ps->head;
