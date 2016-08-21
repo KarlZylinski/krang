@@ -1,0 +1,2 @@
+- add variable assign in first pass, so the variable assign knows which variable it is bound to
+- maybe make some kind of linear heap allocator that takes new heaps of memory whenever it runs out and then allocates linearly in that. this can the be used for all these allocs of asmchunks... or maybe not? the dynamic array starts at 0 mem and then becomes bigger... so maybe i need to make another form of container that uses a linear allocator and then just takes a new slot in the alloc for each thing... but that wont work either since they need to be in series... NOT SURE.
