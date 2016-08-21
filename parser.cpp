@@ -44,8 +44,8 @@ static void parse_func_def(ParserState* ps, ParseScope* scope)
 {
     Assert(parse_func_def_check(ps), "Error in parser: Invalid func def.");
     ParseNode* n = scope->nodes.push_init();
-    n->type = ParseNodeType::FunctionDef;
-    ParseFunctionDef& pfd = n->function_def;
+    n->type = ParseNode::Type::FunctionDefinition;
+    ParseFunctionDefinition& pfd = n->function_definition;
     pfd.return_type = parse_type_name(ps);
     pfd.name = ps->head->val;
     pfd.name_len = ps->head->len;
@@ -107,7 +107,7 @@ static void parse_func_call(ParserState* ps, ParseScope* scope)
 {
     Assert(parse_func_call_check(ps), "Error in parser: Invalid func call.");
     ParseNode* n = scope->nodes.push_init();
-    n->type = ParseNodeType::FunctionCall;
+    n->type = ParseNode::Type::FunctionCall;
     ParseFunctionCall& pfc = n->function_call;
     pfc.name = ps->head->val;
     pfc.name_len = ps->head->len;
@@ -124,7 +124,7 @@ static void parse_loop(ParserState* ps, ParseScope* scope)
 {
     Assert(parse_loop_check, "Error in parser: Invalid loop.");
     ParseNode* n = scope->nodes.push_init();
-    n->type = ParseNodeType::Loop;
+    n->type = ParseNode::Type::Loop;
     ParseLoop& pl = n->loop;
     ++ps->head; // loop keyword
     ++ps->head; // opening brace! TODO: fix no-brace type
@@ -142,7 +142,7 @@ static ParseExpression parse_expression(ParserState* ps)
     ++ps->head;
     
     // TODO ADD STUFF HERE
-    //if (ps->head->type == ParseNodeType::StatementEnd)
+    //if (ps->head->type == ParseNode::Type::StatementEnd)
         return expr;
 
 
@@ -160,8 +160,8 @@ static void parse_variable_decl(ParserState* ps, ParseScope* scope)
 {
     Assert(parse_variable_decl_check(ps), "Error in parser: Invalid variable decl.");
     ParseNode* n = scope->nodes.push_init();
-    n->type = ParseNodeType::VariableDecl;
-    ParseVariableDecl& vd = n->variable_decl;
+    n->type = ParseNode::Type::VariableDeclaration;
+    ParseVariableDeclaration& vd = n->variable_declaration;
     vd.is_mutable = memcmp(ps->head->val, "mut", ps->head->len) == 0;
     ++ps->head; // let/mut
     vd.name = ps->head->val;
@@ -183,7 +183,7 @@ static void parse_variable_assignment(ParserState* ps, ParseScope* scope)
 {
     Assert(is_variable_assignment(ps), "Error in parser: Invalid variable assignment.");
     ParseNode* n = scope->nodes.push_init();
-    n->type = ParseNodeType::VariableAssignment;
+    n->type = ParseNode::Type::VariableAssignment;
     ParseVariableAssignment& va = n->variable_assignment;
     va.name = ps->head->val;
     va.name_len = ps->head->len;

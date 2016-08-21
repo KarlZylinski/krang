@@ -3,6 +3,7 @@
 #include <string.h>
 #define Assert(cond, msg) assert(cond && msg)
 #define Error(msg) assert(false && msg)
+#define alignof(x) __alignof(x)
 
 inline int max(int i1, int i2)
 {

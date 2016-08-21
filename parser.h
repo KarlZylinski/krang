@@ -11,16 +11,6 @@ enum struct DataType
     Int32
 };
 
-enum struct ParseNodeType
-{
-    Scope,
-    FunctionDef,
-    FunctionCall,
-    Loop,
-    VariableDecl,
-    VariableAssignment
-};
-
 struct Value
 {
     DataType type;
@@ -41,7 +31,7 @@ struct ParseScope
     DynamicArray<ParseNode> nodes;
 };
 
-struct ParseFunctionDef
+struct ParseFunctionDefinition
 {
     DataType return_type;
     char* name;
@@ -74,12 +64,13 @@ struct ParseExpression
     Value operand2;
 };
 
-struct ParseVariableDecl
+struct ParseVariableDeclaration
 {
     DataType type;
     char* name;
     unsigned name_len;
     bool is_mutable;
+    bool has_initial_value;
     ParseExpression value_expr;
 };
 
@@ -90,17 +81,28 @@ struct ParseVariableAssignment
     ParseExpression value_expr;
 };
 
+
 struct ParseNode
 {
-    ParseNodeType type;
+    enum struct Type
+    {
+        Scope,
+        FunctionDefinition,
+        FunctionCall,
+        Loop,
+        VariableDeclaration,
+        VariableAssignment
+    };
+
+    Type type;
 
     union
     {
         ParseScope scope;
-        ParseFunctionDef function_def;
+        ParseFunctionDefinition function_definition;
         ParseFunctionCall function_call;
         ParseLoop loop;
-        ParseVariableDecl variable_decl;
+        ParseVariableDeclaration variable_declaration;
         ParseVariableAssignment variable_assignment;
     };
 };

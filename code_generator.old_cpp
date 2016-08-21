@@ -2,6 +2,7 @@
 #include "memory.h"
 #include <string.h>
 #include "parser.h"
+#include <stdio.h>
 
 struct CodeGeneratorState
 {
@@ -90,7 +91,7 @@ static char* uint32_to_str(unsigned num)
 {
     const unsigned buf_size = 4096;
     static char buf[buf_size];
-    snprintf(buf, sizeof(buf_size), "%u", num);
+    sprintf(buf, "%u", num);
     return buf;
 }
 

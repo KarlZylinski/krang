@@ -44,7 +44,7 @@ function run_or_die(cmd)
 end
 
 if set_env then
-    local env_number = arg_contain("env_number_110") and "110" or arg_contain("env_number_120") and "120" or "140"
+    local env_number = arg_contain("env_number_110") and "110" or arg_contain("env_number_120") and "120" or arg_contain("env_number_130") and "130" or "140"
     local vs_dir = os.getenv("VS" .. env_number .. "COMNTOOLS")
 
     if vs_dir == nil then
