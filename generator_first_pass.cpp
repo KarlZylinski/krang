@@ -15,6 +15,22 @@ static unsigned data_type_size(DataType type)
     return 0;
 }
 
+static unsigned get_variable_declaration_index(LocalVariableData* local_variables, unsigned num_variables, char* name, unsigned name_len)
+{
+    for (unsigned i = 0; i < num_variables; ++i)
+    {
+        const LocalVariableData& lvd = local_variables[i];
+
+        if (str_equal(lvd.name, name, name_len))
+        {
+            return i;
+        }
+    }
+
+    Error("Error in generator: Failed finding variable declaration.");
+    return 0;
+}
+
 void generate_local_variables_for_function(DynamicArray<AsmChunk>* chunks, DynamicArray<LocalVariableData>* local_variables, const ParseScope& ps)
 {
     unsigned offset = 0;
@@ -27,6 +43,7 @@ void generate_local_variables_for_function(DynamicArray<AsmChunk>* chunks, Dynam
             case ParseNode::Type::VariableDeclaration:
             {
                 const ParseVariableDeclaration& vd = pn.variable_declaration;
+                unsigned lvi = local_variables->num;
                 LocalVariableData* lvd = local_variables->push_init();
                 lvd->name = vd.name;
                 lvd->name_len = vd.name_len;
@@ -38,9 +55,19 @@ void generate_local_variables_for_function(DynamicArray<AsmChunk>* chunks, Dynam
                 AsmChunk* chunk = chunks->push_init();
                 chunk->type = AsmChunk::Type::VariableDeclaration;
                 AsmChunkVariableDeclarationData& cvd = chunk->variable_declaration;
-                cvd.data = lvd;
+                cvd.local_variable_index = lvi;
                 cvd.has_initial_value = vd.has_initial_value;
                 cvd.initial_value = vd.value_expr;
+            } break;
+            case ParseNode::Type::VariableAssignment:
+            {
+                const ParseVariableAssignment& va = pn.variable_assignment;
+                unsigned lvi = get_variable_declaration_index(local_variables->data, local_variables->num, va.name, va.name_len);
+                AsmChunk* chunk = chunks->push_init();
+                chunk->type = AsmChunk::Type::VariableAssignment;
+                AsmChunkVariableAssignmentData& vad = chunk->variable_assignment;
+                vad.local_variable_index = lvi;
+                vad.value = va.value_expr;
             } break;
             default:
             {

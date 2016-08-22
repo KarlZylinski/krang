@@ -22,7 +22,7 @@ struct LocalVariableData
 
 struct AsmChunkVariableDeclarationData
 {
-    LocalVariableData* data;
+    unsigned local_variable_index;
     bool has_initial_value;
     ParseExpression initial_value;
 };
@@ -43,7 +43,7 @@ struct AsmChunkFunctionDefinitionData
 
 struct AsmChunkVariableAssignmentData
 {
-    LocalVariableData* data;
+    unsigned local_variable_index;
     ParseExpression value;
 };
 

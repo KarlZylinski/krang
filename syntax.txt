@@ -18,7 +18,7 @@ f64
 import memory
 
 # comment comment
-i32 start()
+i32 start() pub
 {
     loop 0, some_size
         print("%u32", iter)
