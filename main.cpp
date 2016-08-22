@@ -7,6 +7,7 @@
 #include "generator.h"
 #include "generator_first_pass.h"
 #include "generator_second_pass.h"
+#include "translator.h"
 
 const static char* usage_string = "Usage: krang.exe input.kra";
 
@@ -49,14 +50,15 @@ int main(int argc, char** argv)
     Allocator heap_alloc = create_heap_allocator();
     GeneratedCodeFirstPass cg = generate_first_pass(&heap_alloc, ps);
     GeneratedCodeSecondPass cg2 = generate_second_pass(&heap_alloc, cg.chunks);
-    (void)cg;
-/*    Allocator ta = create_temp_allocator();
+    AsmTranslationResult tr = translate_to_asm(&heap_alloc, cg2.chunks);
+    
+    Allocator ta = create_temp_allocator();
     size_t code_filename_len = strlen(filename) + 4;
     char* code_filename = (char*)ta.alloc(code_filename_len);
     strcpy(code_filename, filename);
     strcat(code_filename, ".asm");
-    file_write(cg.code, cg.len, code_filename);
-    heap_alloc.dealloc(cg.code);
+    file_write(tr.data, tr.len, code_filename);
+    heap_alloc.dealloc(tr.data);
 
     size_t obj_filename_len = strlen(filename) + 4;
     char* obj_filename = (char*)ta.alloc(obj_filename_len);
@@ -75,7 +77,7 @@ int main(int argc, char** argv)
     sprintf(link_cmd, link_format, obj_filename);
     system(link_cmd);
    
-    heap_allocator_check_clean(&heap_alloc);*/
+    heap_allocator_check_clean(&heap_alloc);
 
     return 0;
 }

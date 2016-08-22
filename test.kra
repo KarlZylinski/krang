@@ -5,6 +5,10 @@ i32 start()
     mut x = 11515
     x = 1
     let y = 5
+    x = 1
+    x = 2
+    y = 3
+    x = 2
     # (add 5 2)
     #i32 y = 5 + 2
     # (add x (div 4 2))

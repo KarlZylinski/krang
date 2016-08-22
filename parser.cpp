@@ -163,6 +163,7 @@ static void parse_variable_decl(ParserState* ps, ParseScope* scope)
     n->type = ParseNode::Type::VariableDeclaration;
     ParseVariableDeclaration& vd = n->variable_declaration;
     vd.is_mutable = memcmp(ps->head->val, "mut", ps->head->len) == 0;
+    vd.has_initial_value = true;
     ++ps->head; // let/mut
     vd.name = ps->head->val;
     vd.name_len = ps->head->len;

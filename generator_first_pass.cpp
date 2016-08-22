@@ -15,6 +15,14 @@ static unsigned data_type_size(DataType type)
     return 0;
 }
 
+static char* uint32_to_str(unsigned num)
+{
+    const unsigned buf_size = 4096;
+    static char buf[buf_size];
+    sprintf(buf, "%u", num);
+    return buf;
+}
+
 static unsigned get_variable_declaration_index(LocalVariableData* local_variables, unsigned num_variables, char* name, unsigned name_len)
 {
     for (unsigned i = 0; i < num_variables; ++i)
@@ -69,7 +77,7 @@ static void generate_for_scope(Allocator* allocator, DynamicArray<AsmChunk>* chu
                 LocalVariableData* lvd = local_variables->push_init();
                 lvd->name = vd.name;
                 lvd->name_len = vd.name_len;
-                lvd->stack_offset = local_variables_offset;
+                lvd->stack_offset = local_variables_offset + 4;
                 local_variables_offset += data_type_size(vd.type);
                 lvd->type = vd.type;
                 lvd->storage_type = LocalVariableStorageType::Stack;
