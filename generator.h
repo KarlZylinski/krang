@@ -47,6 +47,11 @@ struct AsmChunkVariableAssignmentData
     ParseExpression value;
 };
 
+struct AsmChunkReturnData
+{
+    ParseExpression value;
+};
+
 struct AsmChunk
 {
     enum struct Type
@@ -56,7 +61,8 @@ struct AsmChunk
         ScopeEnd,
         VariableDeclaration,
         VariableAssignment,
-        SecondPassParseNode
+        SecondPassParseNode,
+        Return
     };
 
     Type type;
@@ -66,6 +72,8 @@ struct AsmChunk
         AsmChunkFunctionDefinitionData function_definition;
         AsmChunkVariableDeclarationData variable_declaration;
         AsmChunkVariableAssignmentData variable_assignment;
+        AsmChunkScopeData scope;
+        AsmChunkReturnData ret;
         ParseNode second_pass_parse_node;
     };
 };

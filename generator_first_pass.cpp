@@ -31,15 +31,37 @@ static unsigned get_variable_declaration_index(LocalVariableData* local_variable
     return 0;
 }
 
-void generate_local_variables_for_function(DynamicArray<AsmChunk>* chunks, DynamicArray<LocalVariableData>* local_variables, const ParseScope& ps)
+static void generate_for_scope(Allocator* allocator, DynamicArray<AsmChunk>* chunks, DynamicArray<LocalVariableData>* local_variables, const ParseScope& ps);
+
+static void generate_for_function_defintion(Allocator* allocator, DynamicArray<AsmChunk>* chunks, DynamicArray<LocalVariableData>* local_variables, const ParseFunctionDefinition& fd)
 {
-    unsigned offset = 0;
+    AsmChunk* c = chunks->push_init();
+    c->type = AsmChunk::Type::FunctionDefinition;
+    AsmChunkFunctionDefinitionData& fdd = c->function_definition;
+    fdd.return_type = fd.return_type;
+    fdd.name = fd.name;
+    fdd.name_len = fd.name_len;
+    fdd.local_variables = dynamic_array_create<LocalVariableData>(allocator);
+    fdd.scope_data.chunks = dynamic_array_create<AsmChunk>(allocator);
+    generate_for_scope(allocator, &fdd.scope_data.chunks, &fdd.local_variables, fd.scope);
+}
+
+static void generate_for_scope(Allocator* allocator, DynamicArray<AsmChunk>* chunks, DynamicArray<LocalVariableData>* local_variables, const ParseScope& ps)
+{
+    unsigned local_variables_offset = 0;
     for (unsigned i = 0; i < ps.nodes.num; ++i)
     {
         const ParseNode& pn = ps.nodes[i];
 
         switch (pn.type)
         {
+            case ParseNode::Type::Scope:
+                generate_for_scope(allocator, chunks, local_variables, pn.scope); // this is wrong, it needs it's own local variables?? also, shouldn't there be
+                // just "variables in scope"-thing to get stuff from outside the scope?
+                break;
+            case ParseNode::Type::FunctionDefinition:
+                generate_for_function_defintion(allocator, chunks, local_variables, pn.function_definition);
+                break;
             case ParseNode::Type::VariableDeclaration:
             {
                 const ParseVariableDeclaration& vd = pn.variable_declaration;
@@ -47,8 +69,8 @@ void generate_local_variables_for_function(DynamicArray<AsmChunk>* chunks, Dynam
                 LocalVariableData* lvd = local_variables->push_init();
                 lvd->name = vd.name;
                 lvd->name_len = vd.name_len;
-                lvd->stack_offset = offset;
-                offset += data_type_size(vd.type);
+                lvd->stack_offset = local_variables_offset;
+                local_variables_offset += data_type_size(vd.type);
                 lvd->type = vd.type;
                 lvd->storage_type = LocalVariableStorageType::Stack;
                 lvd->is_mutable = vd.is_mutable;
@@ -79,43 +101,11 @@ void generate_local_variables_for_function(DynamicArray<AsmChunk>* chunks, Dynam
     }
 }
 
-void generate_for_function_defintion(Allocator* allocator, DynamicArray<AsmChunk>* chunks, const ParseFunctionDefinition& fd)
-{
-    AsmChunk* c = chunks->push_init();
-    c->type = AsmChunk::Type::FunctionDefinition;
-    AsmChunkFunctionDefinitionData& fdd = c->function_definition;
-    fdd.return_type = fd.return_type;
-    fdd.name = fd.name;
-    fdd.name_len = fd.name_len;
-    fdd.local_variables = dynamic_array_create<LocalVariableData>(allocator);
-    fdd.scope_data.chunks = dynamic_array_create<AsmChunk>(allocator);
-    generate_local_variables_for_function(&fdd.scope_data.chunks, &fdd.local_variables, fd.scope);
-}
-
-void generate_for_scope(Allocator* allocator, DynamicArray<AsmChunk>* chunks, const ParseScope& ps)
-{
-    for (unsigned i = 0; i < ps.nodes.num; ++i)
-    {
-        const ParseNode& pn = ps.nodes[i];
-
-        switch (pn.type)
-        {
-            case ParseNode::Type::Scope:
-                generate_for_scope(allocator, chunks, pn.scope);
-                break;
-            case ParseNode::Type::FunctionDefinition:
-                generate_for_function_defintion(allocator, chunks, pn.function_definition);
-                break;
-        }
-    }
-}
-
 GeneratedCodeFirstPass generate_first_pass(Allocator* allocator, const ParseScope& ps)
 {
     DynamicArray<AsmChunk> chunks = dynamic_array_create<AsmChunk>(allocator);
-    generate_for_scope(allocator, &chunks, ps);
+    generate_for_scope(allocator, &chunks, nullptr, ps);
     GeneratedCodeFirstPass gc = {};
-    gc.chunks = chunks.data;
-    gc.num_chunks = chunks.num;
+    gc.chunks = chunks;
     return gc;
 }

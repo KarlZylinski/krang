@@ -6,6 +6,7 @@
 #include "parser.h"
 #include "generator.h"
 #include "generator_first_pass.h"
+#include "generator_second_pass.h"
 
 const static char* usage_string = "Usage: krang.exe input.kra";
 
@@ -47,6 +48,7 @@ int main(int argc, char** argv)
 
     Allocator heap_alloc = create_heap_allocator();
     GeneratedCodeFirstPass cg = generate_first_pass(&heap_alloc, ps);
+    GeneratedCodeSecondPass cg2 = generate_second_pass(&heap_alloc, cg.chunks);
     (void)cg;
 /*    Allocator ta = create_temp_allocator();
     size_t code_filename_len = strlen(filename) + 4;
